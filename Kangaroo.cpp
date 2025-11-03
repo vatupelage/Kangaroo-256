@@ -718,9 +718,7 @@ void Kangaroo::CreateHerd(int nbKangaroo,Int *px,Int *py,Int *d,int firstType,bo
 
   }
 
-  if(lock) UNLOCK(ghMutex);
-
-  // Compute starting pos
+  // Compute starting pos (must be protected by mutex for thread safety)
   S = secp->ComputePublicKeys(pk);
 
   for(uint64_t j = 0; j<nbKangaroo; j++) {
@@ -732,6 +730,8 @@ void Kangaroo::CreateHerd(int nbKangaroo,Int *px,Int *py,Int *d,int firstType,bo
   }
 
   S = secp->AddDirect(Sp,S);
+
+  if(lock) UNLOCK(ghMutex);
 
   for(uint64_t j = 0; j<nbKangaroo; j++) {
 
