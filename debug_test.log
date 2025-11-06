@@ -1,0 +1,16 @@
+Kangaroo v2.3 [256 range edition by NotATether]
+Start:200000000000000000
+Stop :3FFFFFFFFFFFFFFFFF
+Keys :1
+Number of CPU thread: 0
+Range width: 2^69
+Jump Avg distance: 2^34.02
+Number of kangaroos: 2^20.58
+Suggested DP: 11
+Expected operations: 2^35.67
+Expected RAM: 1028.4MB
+DP size: 12 [0xfff0000000000000000000000000000000000000000000000000000000000000]
+GPU: GPU #0 NVIDIA GeForce RTX 4060 Laptop GPU (24x128 cores) Grid(48x256) (154.0 MB used)
+SolveKeyGPU Thread GPU#0: creating kangaroos...
+SolveKeyGPU Thread GPU#0: 2^20.58 kangaroos [4.8s]
+[502.71 MK/s][GPU 502.71 MK/s][Count 2^29.91][Dead 0][02s (Avg 01:48)][18.9/40.4MB]  [804.18 MK/s][GPU 804.18 MK/s][Count 2^31.04][Dead 0][04s (Avg 01:07)][39.0/68.9MB]  [820.87 MK/s][GPU 820.87 MK/s][Count 2^31.63][Dead 0][06s (Avg 01:06)][57.7/90.3MB]  [757.97 MK/s][GPU 757.97 MK/s][Count 2^32.04][Dead 0][08s (Avg 01:11)][76.3/109.8MB]  [714.41 MK/s][GPU 714.41 MK/s][Count 2^32.39][Dead 0][10s (Avg 01:16)][96.5/130.4MB]  [680.20 MK/s][GPU 680.20 MK/s][Count 2^32.65][Dead 0][12s (Avg 01:20)][115.1/149.1MB]  [664.29 MK/s][GPU 664.29 MK/s][Count 2^32.89][Dead 0][14s (Avg 01:22)][135.4/169.4MB]  [648.35 MK/s][GPU 648.35 MK/s][Count 2^33.08][Dead 0][16s (Avg 01:24)][153.9/188.0MB]  [652.60 MK/s][GPU 652.60 MK/s][Count 2^33.24][Dead 0][18s (Avg 01:23)][172.4/206.7MB]  [646.82 MK/s][GPU 646.82 MK/s][Count 2^33.39][Dead 0][20s (Avg 01:24)][191.0/225.6MB]  [646.09 MK/s][GPU 646.09 MK/s][Count 2^33.53][Dead 0][22s (Avg 01:24)][209.6/244.7MB]  [646.02 MK/s][GPU 646.02 MK/s][Count 2^33.65][Dead 0][24s (Avg 01:24)][228.2/264.0MB]  [605.66 MK/s][GPU 605.66 MK/s][Count 2^33.77][Dead 0][28s (Avg 01:30)][247.0/283.9MB]  [600.57 MK/s][GPU 600.57 MK/s][Count 2^33.88][Dead 0][30s (Avg 01:30)][267.0/305.3MB]  [593.61 MK/s][GPU 593.61 MK/s][Count 2^33.98][Dead 0][32s (Avg 01:31)][285.7/325.5MB]  [592.73 MK/s][GPU 592.73 MK/s][Count 2^34.07][Dead 0][34s (Avg 01:32)][304.3/345.7MB]  [592.60 MK/s][GPU 592.60 MK/s][Count 2^34.15][Dead 0][36s (Avg 01:32)][322.9/366.0MB]  [592.61 MK/s][GPU 592.61 MK/s][Count 2^34.24][Dead 0][38s (Avg 01:32)][341.4/386.5MB]  [592.61 MK/s][GPU 592.61 MK/s][Count 2^34.31][Dead 0][40s (Avg 01:32)][360.1/407.0MB]  [592.61 MK/s][GPU 592.61 MK/s][Count 2^34.39][Dead 0][42s (Avg 01:32)][378.6/427.5MB]  [632.92 MK/s][GPU 632.92 MK/s][Count 2^34.46][Dead 0][44s (Avg 01:26)][398.8/450.0MB]  [637.99 MK/s][GPU 637.99 MK/s][Count 2^34.53][Dead 0][46s (Avg 01:25)][417.4/470.6MB]  [638.65 MK/s][GPU 638.65 MK/s][Count 2^34.59][Dead 0][48s (Avg 01:25)][436.0/491.2MB]  [638.74 MK/s][GPU 638.74 MK/s][Count 2^34.65][Dead 0][50s (Avg 01:25)][454.6/511.9MB]  [638.77 MK/s][GPU 638.77 MK/s][Count 2^34.71][Dead 0][52s (Avg 01:25)][473.1/532.5MB]  [645.05 MK/s][GPU 645.05 MK/s][Count 2^34.77][Dead 0][54s (Avg 01:24)][493.3/554.9MB]  [645.81 MK/s][GPU 645.81 MK/s][Count 2^34.82][Dead 0][56s (Avg 01:24)][511.9/575.6MB]  

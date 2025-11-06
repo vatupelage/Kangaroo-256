@@ -243,7 +243,7 @@ void HashTable::ReAllocate(uint64_t h,uint32_t add) {
 }
 
 int HashTable::Add(int256_t *x,int256_t *d, uint32_t type) {
-  uint64_t h = (x->i64[0] ^ x->i64[1] ^ x->i64[2] ^ x->i64[3]) & HASH_SIZE;
+  uint64_t h = (x->i64[0] ^ x->i64[1] ^ x->i64[2] ^ x->i64[3]) % HASH_SIZE;
   ENTRY *e = CreateEntry(x,d,type);
   return Add(h,e);
 
@@ -289,11 +289,12 @@ int HashTable::Add(uint64_t h,ENTRY* e) {
       uint64_t d21 = ent->d.i64[1];
       uint64_t d22 = ent->d.i64[2];
       uint64_t d23 = ent->d.i64[3];
-      if (d10 == d20 && d11 == d21 && d12 == d22 || d13 == d23) {
+      if (d10 == d20 && d11 == d21 && d12 == d22 && d13 == d23) {
 	// Same point added twice or collision in the same herd!
 	return ADD_DUPLICATE;
       }
       // Collision
+      ::printf("[DEBUG] Collision detected! e->kType=%u vs ent->kType=%u\n", e->kType, ent->kType);
       kType = ent->kType;
       CalcDist(&(ent->d), &kDist);
       return ADD_COLLISION;

@@ -156,25 +156,65 @@ bool Kangaroo::IsDP(Int *x) {
 
 void Kangaroo::SetDP(int size) {
 
-  // Mask for distinguised point
+  // Mask for distinguished point
+  // We check if the UPPER 'size' bits of the 256-bit x-coordinate are zero
   dpSize = size;
   dMask.i64[0] = 0;
   dMask.i64[1] = 0;
   dMask.i64[2] = 0;
   dMask.i64[3] = 0;
+
   if (dpSize > 0) {
     if(dpSize > 256) dpSize = 256;
-    for (int i = 0; i < size; i += 64) {
-      int end = (i + 64 > size) ? (size-1) % 64 : 63;
-      uint64_t mask = ((1ULL << end) - 1) << 1 | 1ULL;
-      dMask.i64[(int)(i/64)] = mask;
+
+    // Build mask from highest limb (bits64[3]) downward
+    // bits64[3] = bits 192-255 (highest)
+    // bits64[2] = bits 128-191
+    // bits64[1] = bits 64-127
+    // bits64[0] = bits 0-63 (lowest)
+
+    int remainingBits = dpSize;
+
+    // Process highest limb first (bits64[3])
+    if(remainingBits >= 64) {
+      dMask.i64[3] = 0xFFFFFFFFFFFFFFFFULL;
+      remainingBits -= 64;
+    } else if(remainingBits > 0) {
+      // Partial limb - set upper N bits
+      dMask.i64[3] = (~0ULL) << (64 - remainingBits);
+      remainingBits = 0;
+    }
+
+    // Process bits64[2] if needed
+    if(remainingBits >= 64) {
+      dMask.i64[2] = 0xFFFFFFFFFFFFFFFFULL;
+      remainingBits -= 64;
+    } else if(remainingBits > 0) {
+      dMask.i64[2] = (~0ULL) << (64 - remainingBits);
+      remainingBits = 0;
+    }
+
+    // Process bits64[1] if needed
+    if(remainingBits >= 64) {
+      dMask.i64[1] = 0xFFFFFFFFFFFFFFFFULL;
+      remainingBits -= 64;
+    } else if(remainingBits > 0) {
+      dMask.i64[1] = (~0ULL) << (64 - remainingBits);
+      remainingBits = 0;
+    }
+
+    // Process bits64[0] if needed (lowest limb)
+    if(remainingBits >= 64) {
+      dMask.i64[0] = 0xFFFFFFFFFFFFFFFFULL;
+    } else if(remainingBits > 0) {
+      dMask.i64[0] = (~0ULL) << (64 - remainingBits);
     }
   }
 
 #ifdef WIN64
-  ::printf("DP size: %d [0x%016I64X%016I64%016IX64X%016I64X]\n",dpSize,dMask.i64[3],dMask.i64[2],dMask.i64[1],dMask.i64[0]);
+  ::printf("DP size: %d [0x%016I64X%016I64X%016I64X%016I64X]\n",dpSize,dMask.i64[3],dMask.i64[2],dMask.i64[1],dMask.i64[0]);
 #else
-  ::printf("DP size: %d [0x%" PRIx64 "%" PRIx64 "%" PRIx64 "%" PRIx64 "]\n",dpSize,dMask.i64[3],dMask.i64[2],dMask.i64[1],dMask.i64[0]);
+  ::printf("DP size: %d [0x%016" PRIx64 "%016" PRIx64 "%016" PRIx64 "%016" PRIx64 "]\n",dpSize,dMask.i64[3],dMask.i64[2],dMask.i64[1],dMask.i64[0]);
 #endif
 
 }
@@ -286,7 +326,6 @@ bool Kangaroo::CollisionCheck(Int* d1,uint32_t type1,Int* d2,uint32_t type2) {
     if(!endOfSearch) {
 
       // Should not happen, reset the kangaroo
-      /*
       ::printf("\n Unexpected wrong collision, reset kangaroo !\n");
       if((int64_t)(Td.bits64[3])<0) {
         Td.ModNegK1order();
@@ -300,7 +339,6 @@ bool Kangaroo::CollisionCheck(Int* d1,uint32_t type1,Int* d2,uint32_t type2) {
       } else {
         ::printf("Found: Wd %s\n",Wd.GetBase16().c_str());
       }
-      */
       return false;
 
     }
