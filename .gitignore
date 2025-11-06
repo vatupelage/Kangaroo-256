@@ -1,15 +1,31 @@
-.vs/
-Kangaroo.vcxproj.user
-Kangaroo.vcxproj.user
-Kangaroo.vcxproj.user
-Kangaroo.VC.opendb
-Kangaroo.sdf
-vc140.pdb
-x64/
-obj/
-.idea/
-CMakeLists.txt
+# Ignore test outputs & moved logs
+test_files/
+
+# Compiled binaries
+kangaroo-256
 kangaroo
-cmake-build-debug/
-*.prf
-input-*
+*.exe
+deviceQuery
+
+# Build artifacts
+*.o
+*.a
+*.so
+obj/
+
+# Logs + intermediate data
+*.log
+*.work
+
+# Test files
+test_*.txt
+*_test.log
+*_comparison.log
+result*.txt
+in.txt
+puzzle*.txt
+80.txt
+
+# Backup / temporary files
+*~
+*.bak
