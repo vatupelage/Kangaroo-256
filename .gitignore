@@ -25,6 +25,9 @@ result*.txt
 in.txt
 puzzle*.txt
 80.txt
+65.txt
+cuda_version.txt
+*.txt.bak
 
 # Backup / temporary files
 *~
