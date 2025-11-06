@@ -1,4 +1,4 @@
-# Ignore test outputs & moved logs
+# Test files + moved logs
 test_files/
 
 # Compiled binaries
@@ -28,4 +28,8 @@ puzzle*.txt
 
 # Backup / temporary files
 *~
+*~
+*~
+
+
 *.bak
