@@ -556,8 +556,6 @@ void Kangaroo::SolveKeyCPU(TH_PARAM *ph) {
 
 void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
 
-  double lastSent = 0;
-
   // Global init
   int thId = ph->threadId;
 
@@ -571,6 +569,17 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
 
   if(keyIdx == 0)
     ::printf("GPU: %s (%.1f MB used)\n",gpu->deviceName.c_str(),gpu->GetMemory() / 1048576.0);
+
+  // Initialize and start async DP sender in client mode
+  ASYNC_DP_SENDER *dpSender = NULL;
+  if(clientMode) {
+    dpSender = new ASYNC_DP_SENDER;
+    InitAsyncDPSender(dpSender, ph->threadId, ph->gpuId);
+    StartAsyncDPSender(dpSender);
+    ph->dpSender = dpSender;
+    if(keyIdx == 0)
+      ::printf("GPU#%d: Async DP sender started (buffer size: %d DPs)\n", ph->gpuId, MAX_DP_BUFFER);
+  }
 
   double t0 = Timer::get_tick();
 
@@ -625,15 +634,15 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
 
     if( clientMode ) {
 
+      // Accumulate DPs from GPU
       for(int i=0;i<(int)gpuFound.size();i++)
         dps.push_back(gpuFound[i]);
 
-      double now = Timer::get_tick();
-      if(now - lastSent > SEND_PERIOD) {
-        LOCK(ghMutex);
-        SendToServer(dps,ph->threadId,ph->gpuId);
-        UNLOCK(ghMutex);
-        lastSent = now;
+      // Submit to async sender (non-blocking, no mutex required)
+      // The background thread handles timing and actual network transmission
+      if(dps.size() > 0) {
+        SubmitDPsAsync(dpSender, dps);
+        // dps is now cleared by SubmitDPsAsync
       }
 
     } else {
@@ -676,6 +685,14 @@ void Kangaroo::SolveKeyGPU(TH_PARAM *ph) {
 
   }
 
+  // Cleanup async DP sender in client mode
+  if(clientMode && dpSender != NULL) {
+    if(keyIdx == 0)
+      ::printf("GPU#%d: Stopping async DP sender...\n", ph->gpuId);
+    StopAsyncDPSender(dpSender);
+    delete dpSender;
+    ph->dpSender = NULL;
+  }
 
   safe_delete_array(ph->px);
   safe_delete_array(ph->py);
@@ -712,6 +729,154 @@ void *_SolveKeyGPU(void *lpParam) {
   TH_PARAM *p = (TH_PARAM *)lpParam;
   p->obj->SolveKeyGPU(p);
   return 0;
+}
+
+// ----------------------------------------------------------------------------
+// Asynchronous DP Sender Implementation
+// ----------------------------------------------------------------------------
+
+// Initialize async DP sender structure
+void Kangaroo::InitAsyncDPSender(ASYNC_DP_SENDER *sender, uint32_t threadId, uint32_t gpuId) {
+  sender->activeBuffer = 0;
+  sender->hasData = false;
+  sender->senderRunning = false;
+  sender->droppedCount = 0;
+  sender->threadId = threadId;
+  sender->gpuId = gpuId;
+  sender->obj = this;
+  sender->buffer[0].reserve(MAX_DP_BUFFER / 2);
+  sender->buffer[1].reserve(MAX_DP_BUFFER / 2);
+#ifdef WIN64
+  sender->bufferMutex = CreateMutex(NULL, FALSE, NULL);
+  sender->senderThread = NULL;
+#else
+  pthread_mutex_init(&sender->bufferMutex, NULL);
+  sender->senderThread = 0;
+#endif
+}
+
+// Background thread that sends DPs to server asynchronously
+void *Kangaroo::AsyncDPSenderThread(void *arg) {
+  ASYNC_DP_SENDER *sender = (ASYNC_DP_SENDER *)arg;
+  Kangaroo *obj = sender->obj;
+  double lastSent = Timer::get_tick();
+  uint64_t lastDropped = 0;
+
+  while(sender->senderRunning) {
+    double now = Timer::get_tick();
+
+    // Check if it's time to send and we have data
+    if((now - lastSent >= SEND_PERIOD) && sender->hasData) {
+
+      // Get the inactive buffer (the one we'll send)
+      int sendBuffer = (sender->activeBuffer == 0) ? 1 : 0;
+
+      if(sender->buffer[sendBuffer].size() > 0) {
+        // Send DPs without blocking GPU thread
+        // Note: SendToServer internally handles ghMutex for server communication
+        obj->SendToServer(sender->buffer[sendBuffer], sender->threadId, sender->gpuId);
+
+        // Clear sent buffer
+        sender->buffer[sendBuffer].clear();
+
+        lastSent = now;
+
+        // Report dropped DPs if any
+        if(sender->droppedCount > lastDropped) {
+          uint64_t dropped = sender->droppedCount - lastDropped;
+          ::printf("\n[GPU#%d] Warning: %llu DPs dropped due to buffer overflow. Consider using larger -d value.\n",
+                   sender->gpuId, (unsigned long long)dropped);
+          lastDropped = sender->droppedCount;
+        }
+      }
+
+      sender->hasData = false;
+    }
+
+    // Sleep briefly to avoid busy-waiting
+    Timer::SleepMillis(50);
+  }
+
+  // Final flush: send any remaining DPs before exit
+  for(int i = 0; i < 2; i++) {
+    if(sender->buffer[i].size() > 0) {
+      obj->SendToServer(sender->buffer[i], sender->threadId, sender->gpuId);
+      sender->buffer[i].clear();
+    }
+  }
+
+  return NULL;
+}
+
+// Start the async sender thread
+void Kangaroo::StartAsyncDPSender(ASYNC_DP_SENDER *sender) {
+  sender->senderRunning = true;
+#ifdef WIN64
+  sender->senderThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)AsyncDPSenderThread, sender, 0, NULL);
+#else
+  pthread_create(&sender->senderThread, NULL, AsyncDPSenderThread, sender);
+#endif
+}
+
+// Stop the async sender thread
+void Kangaroo::StopAsyncDPSender(ASYNC_DP_SENDER *sender) {
+  if(sender->senderRunning) {
+    sender->senderRunning = false;
+#ifdef WIN64
+    WaitForSingleObject(sender->senderThread, INFINITE);
+    CloseHandle(sender->senderThread);
+    CloseHandle(sender->bufferMutex);
+#else
+    pthread_join(sender->senderThread, NULL);
+    pthread_mutex_destroy(&sender->bufferMutex);
+#endif
+  }
+}
+
+// Submit DPs to async sender (non-blocking, called by GPU thread)
+void Kangaroo::SubmitDPsAsync(ASYNC_DP_SENDER *sender, std::vector<ITEM> &dps) {
+  if(dps.size() == 0) return;
+
+  // Get current active buffer (GPU writes here)
+  int writeBuffer = sender->activeBuffer;
+
+  // Check if adding these DPs would overflow the buffer
+  size_t currentSize = sender->buffer[writeBuffer].size();
+  size_t newSize = currentSize + dps.size();
+
+  if(newSize > MAX_DP_BUFFER) {
+    // Buffer overflow: drop oldest DPs and count them
+    size_t overflow = newSize - MAX_DP_BUFFER;
+    sender->droppedCount += overflow;
+
+    // Keep only the newest DPs that fit
+    if(dps.size() <= MAX_DP_BUFFER) {
+      sender->buffer[writeBuffer].clear();
+      for(size_t i = 0; i < dps.size(); i++) {
+        sender->buffer[writeBuffer].push_back(dps[i]);
+      }
+    } else {
+      // Even new DPs alone exceed buffer, keep only newest MAX_DP_BUFFER
+      sender->buffer[writeBuffer].clear();
+      size_t start = dps.size() - MAX_DP_BUFFER;
+      for(size_t i = start; i < dps.size(); i++) {
+        sender->buffer[writeBuffer].push_back(dps[i]);
+      }
+      sender->droppedCount += (dps.size() - MAX_DP_BUFFER);
+    }
+  } else {
+    // Normal case: append DPs to active buffer
+    for(size_t i = 0; i < dps.size(); i++) {
+      sender->buffer[writeBuffer].push_back(dps[i]);
+    }
+  }
+
+  // Swap buffers atomically: sender will read from old buffer, GPU writes to new
+  sender->activeBuffer = (writeBuffer == 0) ? 1 : 0;
+  sender->hasData = true;
+
+  // Clear input vector
+  dps.clear();
 }
 
 // ----------------------------------------------------------------------------

@@ -55,6 +55,25 @@ typedef pthread_t THREAD_HANDLE;
 
 class Kangaroo;
 
+// Asynchronous DP sender buffer (double-buffered, lock-free)
+typedef struct {
+  std::vector<ITEM> buffer[2];        // Double buffer: [0] = GPU writes, [1] = sender reads
+  volatile int activeBuffer;          // 0 or 1: which buffer GPU is writing to
+  volatile bool hasData;              // True if sender buffer has unsent data
+  volatile bool senderRunning;        // True while sender thread is active
+  volatile uint64_t droppedCount;     // Count of DPs dropped due to overflow
+  uint32_t threadId;                  // Thread ID for this GPU
+  uint32_t gpuId;                     // GPU ID
+  Kangaroo *obj;                      // Parent object
+#ifdef WIN64
+  HANDLE senderThread;                // Background sender thread handle
+  HANDLE bufferMutex;                 // Mutex for buffer swap operations
+#else
+  pthread_t senderThread;             // Background sender thread handle
+  pthread_mutex_t bufferMutex;        // Mutex for buffer swap operations
+#endif
+} ASYNC_DP_SENDER;
+
 // Input thread parameters
 typedef struct {
 
@@ -69,6 +88,7 @@ typedef struct {
   int  gridSizeX;
   int  gridSizeY;
   int  gpuId;
+  ASYNC_DP_SENDER *dpSender;          // Async DP sender for this GPU thread
 #endif
 
   Int *px; // Kangaroo position
@@ -77,7 +97,7 @@ typedef struct {
 #ifdef USE_SYMMETRY
   uint64_t *symClass; // Last jump
 #endif
-  
+
   SOCKET clientSock;
   char  *clientInfo;
 
@@ -148,6 +168,13 @@ public:
   void SolveKeyCPU(TH_PARAM *p);
   void SolveKeyGPU(TH_PARAM *p);
   bool HandleRequest(TH_PARAM *p);
+
+  // Async DP sender methods
+  void InitAsyncDPSender(ASYNC_DP_SENDER *sender, uint32_t threadId, uint32_t gpuId);
+  void StartAsyncDPSender(ASYNC_DP_SENDER *sender);
+  void StopAsyncDPSender(ASYNC_DP_SENDER *sender);
+  void SubmitDPsAsync(ASYNC_DP_SENDER *sender, std::vector<ITEM> &dps);
+  static void *AsyncDPSenderThread(void *arg);
   bool MergePartition(TH_PARAM* p);
   bool CheckPartition(TH_PARAM* p);
   bool CheckWorkFile(TH_PARAM* p);

@@ -41,6 +41,11 @@
 // SendDP Period in sec
 #define SEND_PERIOD 2.0
 
+// Maximum DPs buffered per GPU before dropping (adjust based on -d and GPU speed)
+// Default: 256K DPs ≈ 20MB RAM per GPU
+// With -d 11, RTX 4090 generates ~130K DPs per 2 seconds, so 256K provides 2x headroom
+#define MAX_DP_BUFFER 262144
+
 // Timeout before closing connection idle client in sec
 #define CLIENT_TIMEOUT 3600.0
 
