@@ -194,7 +194,8 @@ void Kangaroo::ProcessServer() {
     for(int i = 0; i<(int)localCache.size() && !endOfSearch; i++) {
       DP_CACHE dp = localCache[i];
       for(int j = 0; j<(int)dp.nbDP && !endOfSearch; j++) {
-        if(!AddToTable(&dp.dp[j].x,&dp.dp[j].d,dp.dp[j].kIdx % 2)) {
+        // dp.dp[j].kIdx already contains kangaroo type (TAME=0, WILD=1) from client
+        if(!AddToTable(&dp.dp[j].x,&dp.dp[j].d,dp.dp[j].kIdx)) {
           // Collision inside the same herd
           collisionInSameHerd++;
         }

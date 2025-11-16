@@ -1166,7 +1166,7 @@ bool Kangaroo::SendToServer(std::vector<ITEM> &dps,uint32_t threadId,uint32_t gp
       int256_t D;
       HashTable::Convert(&dps[i].x,&dps[i].d,&X,&D);
 
-      dp[i].kIdx = (uint32_t)dps[i].kIdx;
+      dp[i].kIdx = (uint32_t)(dps[i].kIdx % 2);  // Send kangaroo type (TAME=0, WILD=1), not index
       dp[i].x.i64[0] = X.i64[0];
       dp[i].x.i64[1] = X.i64[1];
       dp[i].x.i64[2] = X.i64[2];

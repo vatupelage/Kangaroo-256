@@ -92,6 +92,7 @@ void HashTable::toInt(int256_t *a, Int *b)
   b->bits64[1] = a->i64[1];
   b->bits64[2] = a->i64[2];
   b->bits64[3] = a->i64[3];
+  b->bits64[4] = 0;  // Initialize the 5th word for 320-bit Int
 }
 
 void HashTable::Convert(Int *x,Int *d,int256_t *X,int256_t *D) {

@@ -92,7 +92,7 @@ typedef struct {
 // DP transfered over the network
 typedef struct {
 
-  uint32_t kIdx;
+  uint32_t kIdx;  // Kangaroo type: TAME=0, WILD=1 (not index!)
   int256_t x;
   int256_t d;
 
